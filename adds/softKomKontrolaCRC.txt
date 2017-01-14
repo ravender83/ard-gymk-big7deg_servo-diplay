@@ -1,0 +1,79 @@
+//ADKeyboard Module
+//Developed by DFRobot.com
+//Last modified 30/11/2011
+//Version 1.0
+int mgr = 100;
+int adc_key_val[5] ={0+mgr,145+mgr, 330+mgr,  506+mgr, 741+mgr };
+int NUM_KEYS = 5;
+int adc_key_in;
+int key=-1;
+int oldkey=-1;
+
+byte sendFrame[4];
+
+byte makeCRC(byte tab[], int size)
+{
+  int suma_crc = 0;
+  for (int i=0; i<size-1;i++)
+  {
+   suma_crc = suma_crc+tab[i];  
+  }
+  suma_crc = 256 - suma_crc;
+  return lowByte(suma_crc);
+}
+
+boolean checkCRC(byte tab[], int size, byte crc)
+{
+byte calc_crc = makeCRC(tab, size);
+if (calc_crc == crc) return true; else return false;
+}
+
+void setup()
+{
+  Serial.begin(9600); // 9600 bps
+}
+ 
+void loop()
+{
+  
+
+
+ adc_key_in = analogRead(0);    // read the value from the sensor 
+  key = get_key(adc_key_in);  // convert into key press
+  
+  if (key != oldkey)   // if keypress is detected
+   {
+    delay(50);  // wait for debounce time
+    adc_key_in = analogRead(0);    // read the value from the sensor 
+    key = get_key(adc_key_in);    // convert into key press
+    if (key != oldkey)    
+    {   
+      oldkey = key;
+      if (key >=0){
+    sendFrame[0] = key;
+    sendFrame[1] = highByte(adc_key_in);
+  sendFrame[2] = lowByte(adc_key_in);
+   sendFrame[3] = makeCRC(sendFrame, sizeof(sendFrame));
+Serial.write(sendFrame, sizeof(sendFrame));
+  
+      }
+    }
+  }
+ 
+ delay(100);
+}
+// Convert ADC value to key number
+int get_key(unsigned int input)
+{
+    int k;
+    for (k = 0; k < NUM_KEYS; k++)
+    {
+      if (input < adc_key_val[k])
+     {
+            return k+1;
+        }
+   }
+       if (k >= NUM_KEYS)k = -1;  // No valid key pressed
+       return k;
+}
+
